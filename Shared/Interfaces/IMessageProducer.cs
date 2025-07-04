@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Shared.Interfaces
 {
-    public interface IWikiStreamService
+    public interface IMessageProducer<T> : IDisposable
     {
-        public Task GetWikiStreamsAsync();
+        Task ProduceAsync(T message, CancellationToken cancellationToken = default);
     }
 }

@@ -8,17 +8,19 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Shared.WikiStreamService
+namespace Producer.WikiStreamService
 {
     public class WikiMediaStreamService : IWikiStreamService
     {
         private readonly HttpClient _httpClient;
+        private readonly IMessageProducer<RecentChangeDto> _producer;
 
-        public WikiMediaStreamService(HttpClient httpClient)
+        public WikiMediaStreamService(HttpClient httpClient, IMessageProducer<RecentChangeDto> producer)
         {
             _httpClient = httpClient;
+            _producer = producer;
         }
-        public async Task<string> GetWikiStreamsAsync()
+        public async Task GetWikiStreamsAsync()
         {
 
             var stream = await _httpClient.GetStreamAsync("/v2/stream/recentchange");
@@ -40,7 +42,9 @@ namespace Shared.WikiStreamService
                         try
                         {
                             var change = JsonSerializer.Deserialize<RecentChangeDto>(dataLine);
-                            Console.WriteLine($"[{change.type}] {change.title} by {change.user}");
+                            await _producer.ProduceAsync(change!);
+
+                            Console.WriteLine($"[{change!.Type}] {change.Title} by {change.User}");
                         }
                         catch (Exception ex)
                         {
@@ -61,8 +65,6 @@ namespace Shared.WikiStreamService
                 if (line.StartsWith("data:"))
                     dataLine = line.Substring(5).Trim();
             }
-
-            return "";
         }
     }
 }
