@@ -1,4 +1,5 @@
-﻿using Shared.DTOs;
+﻿using Microsoft.Extensions.Logging;
+using Shared.DTOs;
 using Shared.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -14,11 +15,12 @@ namespace Producer.WikiStreamService
     {
         private readonly HttpClient _httpClient;
         private readonly IMessageProducer<RecentChangeDto> _producer;
-
-        public WikiMediaStreamService(HttpClient httpClient, IMessageProducer<RecentChangeDto> producer)
+        private readonly ILogger<WikiMediaStreamService> _logger;
+        public WikiMediaStreamService(HttpClient httpClient, IMessageProducer<RecentChangeDto> producer, ILogger<WikiMediaStreamService> logger)
         {
-            _httpClient = httpClient;
-            _producer = producer;
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient)); ;
+            _producer = producer ?? throw new ArgumentNullException(nameof(producer));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
         public async Task GetWikiStreamsAsync(CancellationToken cancellationToken)
         {
@@ -48,11 +50,11 @@ namespace Producer.WikiStreamService
                             var change = JsonSerializer.Deserialize<RecentChangeDto>(dataLine);
                             await _producer.ProduceAsync(change!, cancellationToken);
 
-                            Console.WriteLine($"[{change!.Type}] {change.Title} by {change.User}");
+                            _logger.LogInformation($"[{change!.Type}] {change.Title} by {change.User}");
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine("Error parsing event: " + ex.Message);
+                            _logger.LogError(ex, $"Error message: {ex.Message}");
                         }
                     }
 
