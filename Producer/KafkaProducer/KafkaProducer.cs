@@ -20,7 +20,7 @@ namespace Producer.KafkaProducer
         private readonly string _topic;
         private readonly ILogger _logger;
         
-        public KafkaProducer(ILogger<KafkaProducer<T>> logger, IOptions<KafkaOptions> options)
+        public KafkaProducer(ILogger<KafkaProducer<T>> logger, IOptions<KafkaProducerOptions> options)
         {
 
             var kafkaOptions = options.Value;
@@ -28,25 +28,22 @@ namespace Producer.KafkaProducer
 
             var config = new ProducerConfig
             {
-                BootstrapServers = kafkaOptions.BootstrapServers,
+                BootstrapServers = kafkaOptions?.BootstrapServers ?? throw new ArgumentNullException(nameof(options)),
                 AllowAutoCreateTopics = kafkaOptions.AllowAutoCreateTopics,
                 Acks = kafkaOptions.Acks,
             };
 
-            _logger = logger;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _producer = new ProducerBuilder<Null, string>(config).Build();
-
         }
 
         public async Task ProduceAsync(T message, CancellationToken cancellationToken = default)
         {
-
             if (message == null)
                 throw new ArgumentNullException(nameof(message), "Cannot produce a null message.");
 
             try
             {
-
                 string jsonMessage = JsonSerializer.Serialize(message);
 
                 var deliveryResult = await _producer.ProduceAsync(topic: _topic,
@@ -62,7 +59,6 @@ namespace Producer.KafkaProducer
             {
                 _logger.LogError($"Delivery failed: {e.Error.Reason}");
             }
-
         }
 
         public void Dispose()

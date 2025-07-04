@@ -1,37 +1,30 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shared.Extensions;
 using Shared.Interfaces;
 using Producer.WikiStreamService;
 using Producer.KafkaProducer;
 using Shared.POCO;
+using Producer.Jobs;
 
 using var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         // Bind KafkaOptions from config
-        services.Configure<KafkaOptions>(context.Configuration.GetSection("Kafka"));
+        services.Configure<KafkaProducerOptions>(context.Configuration.GetSection("KafkaProducer"));
         // Register KafkaProducer as a singleton
         services.AddSingleton(typeof(IMessageProducer<>), typeof(KafkaProducer<>));
-        // Your other services...
-        services.AddTransient<IWikiStreamService, WikiMediaStreamService>();
+        // Other registered services
+        services.AddSingleton<IWikiStreamService, WikiMediaStreamService>();
         services.AddHttpClient<IWikiStreamService, WikiMediaStreamService>(client =>
         {
             client.BaseAddress = new Uri("https://stream.wikimedia.org");
         }).AddPolicyHandler(RetryPolicies.GetRetryPolicy());
-        
+
+        // Register the background job
+        services.AddHostedService<EventProducerJob>(); 
+
     })
     .Build();
 
-// Get the service provider
-var serviceProvider = host.Services;
-
-// Get the required service
-var wikiStreamService = serviceProvider.GetRequiredService<IWikiStreamService>();
-await wikiStreamService.GetWikiStreamsAsync();
-
-
-
-
+await host.RunAsync();

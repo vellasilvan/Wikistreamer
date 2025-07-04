@@ -20,8 +20,9 @@ namespace Producer.WikiStreamService
             _httpClient = httpClient;
             _producer = producer;
         }
-        public async Task GetWikiStreamsAsync()
+        public async Task GetWikiStreamsAsync(CancellationToken cancellationToken)
         {
+            
 
             var stream = await _httpClient.GetStreamAsync("/v2/stream/recentchange");
             using var reader = new System.IO.StreamReader(stream);
@@ -32,6 +33,9 @@ namespace Producer.WikiStreamService
 
             while (!reader.EndOfStream)
             {
+
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var line = await reader.ReadLineAsync();
 
                 if (string.IsNullOrWhiteSpace(line))
@@ -42,7 +46,7 @@ namespace Producer.WikiStreamService
                         try
                         {
                             var change = JsonSerializer.Deserialize<RecentChangeDto>(dataLine);
-                            await _producer.ProduceAsync(change!);
+                            await _producer.ProduceAsync(change!, cancellationToken);
 
                             Console.WriteLine($"[{change!.Type}] {change.Title} by {change.User}");
                         }

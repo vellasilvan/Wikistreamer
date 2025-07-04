@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Shared.POCO
 {
-    public class KafkaOptions
+    public class KafkaProducerOptions
     {
         public string BootstrapServers { get; set; } = string.Empty;
         public string Topic { get; set; } = string.Empty;

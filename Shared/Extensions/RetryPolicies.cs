@@ -12,7 +12,7 @@ namespace Shared.Extensions
     public static class RetryPolicies
     {
 
-        //This is a retry policy with the jitter strategy to prevent retries to trigger at the same time.
+        //This is a retry policy with the jitter strategy to prevent retries to trigger at the same time. Hence, this will reduce the risk of application overhead.
         static public IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
         {
 

@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Shared.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,44 +14,21 @@ namespace Consumer.Jobs
     internal class EventConsumerJob : BackgroundService
     {
         private readonly ILogger<EventConsumerJob> _logger;
+        private readonly IMessageConsumer _consumer;
 
-        public EventConsumerJob(ILogger<EventConsumerJob> logger)
+        public EventConsumerJob(IMessageConsumer consumer, ILogger<EventConsumerJob> logger)
         {
-            _logger = logger;
+            _logger = logger ?? throw new ArgumentNullException(nameof(consumer));
+            _consumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var config = new ConsumerConfig
-            {
-                BootstrapServers = "localhost:9092",
-                GroupId = "test-group",
-                AutoOffsetReset = AutoOffsetReset.Earliest
-            };
+            _logger.LogInformation($"The {nameof(EventConsumerJob)} has started executing...");
 
-            using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
+            _consumer.Consume(stoppingToken);
 
-            consumer.Subscribe("WikiMedia");
-
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                try
-                {
-                    var consumeResult = consumer.Consume(TimeSpan.FromSeconds(5));
-
-                    if (consumeResult == null)
-                    {
-                        continue;
-                    }
-
-                    _logger.LogInformation($"Consumed message '{consumeResult.Message.Value}' at: '{consumeResult.Offset}'");
-                }
-                catch (Exception)
-                {
-                    // Ignore
-                }
-            }
-
+            _logger.LogInformation($"The {nameof(EventConsumerJob)} has finished executing...");
 
             return Task.CompletedTask;
         }
